@@ -1,14 +1,35 @@
-# Build stage
-FROM node:20-alpine as build
+# Step 1: Build the React app
+FROM node:16 AS build
 
+# Set the working directory
 WORKDIR /app
-COPY package*.json ./
+
+# Copy package.json and package-lock.json
+COPY package*.json ./ 
+
+# Install dependencies
 RUN npm install
-COPY . .
+
+# Copy the rest of the application
+COPY . . 
+
+# Build the React app
 RUN npm run build
 
-# Production stage
+# Step 2: Serve the React app using Nginx
 FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copy the custom nginx.conf to the correct location
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Change permissions of nginx.conf
+RUN chmod 644 /etc/nginx/nginx.conf
+
+# Copy the build folder from the previous stage to the Nginx HTML folder
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Expose port 3000 (since Nginx listening on port 3000)
 EXPOSE 3000
+
+# Start Nginx server
 CMD ["nginx", "-g", "daemon off;"]
